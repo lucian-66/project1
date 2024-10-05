@@ -1,36 +1,57 @@
-# This is a basic workflow to help you get started with Actions
-
-name: CI
-
-# Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+name: CI Pipeline  
+  
+on:  
+  push:  
+    branches:  
+      - main  
+  pull_request:  
+    branches:  
+      - main  
+  
+jobs:  
+  build-and-deploy:  
+    runs-on: ubuntu-latest  
+    steps:  
+      - name: Checkout Repository  
+        uses: actions/checkout@v3  
+  
+      # 安装Node.js和npm  
+      - name: Set up Node.js  
+        uses: actions/setup-node@v3  
+        with:  
+          node-version: '22'   
+  
+      # 安装项目依赖  
+      - name: Install Dependencies  
+        run: npm install  
+  
+      # 检查TypeScript代码是否有错误  
+      - name: Check TypeScript Errors  
+        run: npm run tsc -- --noEmit  
+  
+      # 运行代码风格检查（例如使用ESLint）  
+      - name: Run Linting  
+        run: npm run lint   
+  
+      # 编译TypeScript代码  
+      - name: Compile TypeScript  
+        run: npm run build  
+   
+  
+      # 设置SSH代理以连接到服务器  
+      - name: Set up SSH Agent  
+        uses: webfactory/ssh-agent@v0.5.4  
+        with:  
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  
+  
+      # 部署到服务器  
+      - name: Deploy to Server  
+        run: |  
+          ssh -o StrictHostKeyChecking=no user@your_server_ip 'cd /path/to/your/project && git pull origin main'  
+          ssh -o StrictHostKeyChecking=no user@your_server_ip 'docker-compose down && docker-compose up -d'  
+  
+      # （可选）通知（例如通过Slack或Microsoft Teams）  
+      # - name: Notify on Success or Failure  
+      #   uses: some-notification-action@v1  
+      #   with:  
+      #     # 通知相关的配置
