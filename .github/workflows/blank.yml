@@ -11,6 +11,12 @@ on:
 jobs:  
   build-and-deploy:  
     runs-on: ubuntu-latest  
+    env:  
+      TIMESTAMP: ${{ format('YYYYMMDDHHmmss', now()) }}  
+      IMAGE_NAME: "testCICD"  
+      DOCKER_REPO: "testCICD"   
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}  
+  
     steps:  
       - name: Checkout Repository  
         uses: actions/checkout@v3  
@@ -19,39 +25,53 @@ jobs:
       - name: Set up Node.js  
         uses: actions/setup-node@v3  
         with:  
-          node-version: '22'   
+          node-version: '22'  
+  
+      # 缓存node_modules以加速构建  
+      - name: Cache node_modules  
+        uses: actions/cache@v3  
+        with:  
+          path: '**/node_modules'  
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}  
+          restore-keys: |  
+            ${{ runner.os }}-node-  
   
       # 安装项目依赖  
       - name: Install Dependencies  
         run: npm install  
   
-      # 检查TypeScript代码是否有错误  
-      - name: Check TypeScript Errors  
-        run: npm run tsc -- --noEmit  
-  
-      # 运行代码风格检查（例如使用ESLint）  
-      - name: Run Linting  
-        run: npm run lint   
-  
-      # 编译TypeScript代码  
-      - name: Compile TypeScript  
+      # 构建项目（假设有build脚本）  
+      - name: Build Project  
         run: npm run build  
-   
   
-      # 设置SSH代理以连接到服务器  
-      - name: Set up SSH Agent  
-        uses: webfactory/ssh-agent@v0.5.4  
+      # 运行测试（假设有test脚本）  
+      - name: Run Tests  
+        run: npm test  
+  
+      # 构建Docker镜像  
+      - name: Build Docker Image  
+        run: docker build -t ${IMAGE_NAME}:${TIMESTAMP} .  
+  
+      # 登录到私有 Docker 仓库  
+      - name: Login to private Docker registry  
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin ${{ secrets.DOCKER_REGISTRY_URL }}  
+  
+      # 推送Docker镜像到Docker Hub  
+      - name: Push Docker Image to Docker Hub  
+        run: docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:${TIMESTAMP} && docker push ${DOCKER_REPO}:${TIMESTAMP}  
+  
+      # 可选：推送带有latest标签的镜像  
+      - name: Push Docker Image with latest tag (optional)  
+        run: docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:latest && docker push ${DOCKER_REPO}:latest  
+  
+      # 清理（可选）  
+      - name: Log out from Docker Hub (cleanup)  
+        if: always() # 无论构建成功还是失败，都执行登出操作  
+        run: docker logout  
+  
+      # 通知（可选，例如使用Slack等通知工具）  
+      - name: Notify on Slack  
         with:  
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  
-  
-      # 部署到服务器  
-      - name: Deploy to Server  
-        run: |  
-          ssh -o StrictHostKeyChecking=no user@your_server_ip 'cd /path/to/your/project && git pull origin main'  
-          ssh -o StrictHostKeyChecking=no user@your_server_ip 'docker-compose down && docker-compose up -d'  
-  
-      # （可选）通知（例如通过Slack或Microsoft Teams）  
-      # - name: Notify on Success or Failure  
-      #   uses: some-notification-action@v1  
-      #   with:  
-      #     # 通知相关的配置
+          status: ${{ job.status }}  
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author,action,duration,job,workflow,ref,workflow_url,pull_request,branch
