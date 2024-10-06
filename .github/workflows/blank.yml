@@ -10,8 +10,8 @@ jobs:
   build-and-deploy:  
     runs-on: ubuntu-latest  
     env:   
-      IMAGE_NAME: "testCICD"  
-      DOCKER_REPO: "testCICD"   
+      IMAGE_NAME: "testcicd"  
+      DOCKER_REPO: "testcicd"   
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}  
   
     steps:  
