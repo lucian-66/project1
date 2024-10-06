@@ -68,8 +68,13 @@ jobs:
         run: docker logout  
   
       # 通知（可选，例如使用Slack等通知工具）  
-      - name: Notify on Slack  
-        with:  
-          status: ${{ job.status }}  
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          fields: repo,message,commit,author,action,duration,job,workflow,ref,workflow_url,pull_request,branch
+      - name: Notify Server with Latest Docker Image Name  
+        run: |  
+          image_name="${IMAGE_NAME}:${TIMESTAMP}"  
+          json_payload='{  
+            "image_name": "'$image_name'"  
+          }'  
+          curl -X POST -H "Content-Type: application/json" --data "$json_payload" https://your-server-url/endpoint  
+        env:  
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}  
+          TIMESTAMP: ${{ env.TIMESTAMP }}
