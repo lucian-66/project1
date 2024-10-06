@@ -36,11 +36,7 @@ jobs:
       # 安装项目依赖  
       - name: Install Dependencies  
         run: npm install  
-  
-      # 构建项目（假设有build脚本）  
-      - name: Build Project  
-        run: npm run build  
-  
+
       # 运行测试（假设有test脚本）  
       - name: Run Tests  
         run: npm test  
