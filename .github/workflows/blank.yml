@@ -1,36 +1,80 @@
-# This is a basic workflow to help you get started with Actions
+name: CI Pipeline  
+  
+on:  
+  push:  
+    branches:  
+      - main  
 
-name: CI
-
-# Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+  
+jobs:  
+  build-and-deploy:  
+    runs-on: ubuntu-latest  
+    env:  
+      TIMESTAMP: ${{ format('YYYYMMDDHHmmss', now()) }}  
+      IMAGE_NAME: "testCICD"  
+      DOCKER_REPO: "testCICD"   
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}  
+  
+    steps:  
+      - name: Checkout Repository  
+        uses: actions/checkout@v3  
+  
+      # 安装Node.js和npm  
+      - name: Set up Node.js  
+        uses: actions/setup-node@v3  
+        with:  
+          node-version: '22'  
+  
+      # 缓存node_modules以加速构建  
+      - name: Cache node_modules  
+        uses: actions/cache@v3  
+        with:  
+          path: '**/node_modules'  
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}  
+          restore-keys: |  
+            ${{ runner.os }}-node-  
+  
+      # 安装项目依赖  
+      - name: Install Dependencies  
+        run: npm install  
+  
+      # 构建项目（假设有build脚本）  
+      - name: Build Project  
+        run: npm run build  
+  
+      # 运行测试（假设有test脚本）  
+      - name: Run Tests  
+        run: npm test  
+  
+      # 构建Docker镜像  
+      - name: Build Docker Image  
+        run: docker build -t ${IMAGE_NAME}:${TIMESTAMP} .  
+  
+      # 登录到私有 Docker 仓库  
+      - name: Login to private Docker registry  
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin ${{ secrets.DOCKER_REGISTRY_URL }}  
+  
+      # 推送Docker镜像到Docker Hub  
+      - name: Push Docker Image to Docker Hub  
+        run: docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:${TIMESTAMP} && docker push ${DOCKER_REPO}:${TIMESTAMP}  
+  
+      # 可选：推送带有latest标签的镜像  
+      - name: Push Docker Image with latest tag (optional)  
+        run: docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:latest && docker push ${DOCKER_REPO}:latest  
+  
+      # 清理（可选）  
+      - name: Log out from Docker Hub (cleanup)  
+        if: always() # 无论构建成功还是失败，都执行登出操作  
+        run: docker logout  
+  
+      # 通知（可选，例如使用Slack等通知工具）  
+      - name: Notify Server with Latest Docker Image Name  
+        run: |  
+          image_name="${IMAGE_NAME}:${TIMESTAMP}"  
+          json_payload='{  
+            "image_name": "'$image_name'"  
+          }'  
+          curl -X POST -H "Content-Type: application/json" --data "$json_payload" https://your-server-url/endpoint  
+        env:  
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}  
+          TIMESTAMP: ${{ env.TIMESTAMP }}
