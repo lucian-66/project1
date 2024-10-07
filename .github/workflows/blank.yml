@@ -109,7 +109,7 @@ jobs:
       - name: Push Docker Image to Docker Registry
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          docker push ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
+          docker push http://${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
@@ -120,7 +120,7 @@ jobs:
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
           docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:latest
-          docker push ${REGISTRY_PATH}/${DOCKER_REPO}:latest
+          docker push http://${REGISTRY_PATH}/${DOCKER_REPO}:latest
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
