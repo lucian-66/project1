@@ -83,7 +83,7 @@ jobs:
       # 提取主机名和端口
       - name: Extract Hostname and Port
         run: |
-          REGISTRY_PATH=$(echo "${{ env.DOCKER_REGISTRY_URL }}" | awk -F'[/:]' '{print $3":"$4}')
+          REGISTRY_PATH=$(echo "${{ env.DOCKER_REGISTRY_URL }}" | sed 's/http:\/\///' | sed 's/\///')
           echo "REGISTRY_PATH=$REGISTRY_PATH" >> $GITHUB_ENV
         env:
           DOCKER_REGISTRY_URL: ${{ env.DOCKER_REGISTRY_URL }}
