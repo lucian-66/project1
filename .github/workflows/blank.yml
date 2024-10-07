@@ -66,46 +66,48 @@ jobs:
         env:  
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           
-      # 设置环境变量以强制使用HTTP协议
-      - name: Set environment variable for HTTP protocol
+     # 使用curl模拟登录并获取认证令牌
+      - name: Simulate Login to private Docker registry
         run: |
-          echo ${{ secrets.DOCKER_REGISTRY_URL }}
-          echo "DOCKER_HTTP=true" >> $GITHUB_ENV
-          
-      # 登录到私有 Docker 仓库  
-      - name: Login to private Docker registry  
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin ${{ secrets.DOCKER_REGISTRY_URL }}
+          # 创建临时目录用于存放认证信息
+          mkdir -p ~/.docker
+          # 使用curl命令发送认证请求
+          AUTH_TOKEN=$(echo -n "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" | base64)
+          # 将认证信息写入配置文件
+          echo "{\"auths\":{\"${{ env.DOCKER_REGISTRY_URL }}\":{\"username\":\"${{ secrets.DOCKER_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_PASSWORD }}\"}}}" > ~/.docker/config.json
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  
-      # 推送Docker镜像到Docker Hub（注意这里也使用了 TIMESTAMP 变量）  
-      - name: Push Docker Image to Docker Hub  
-        run: |  
-          TIMESTAMP=$(date +'%Y%m%d%H%M%S')  
-          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:${TIMESTAMP} && docker push ${DOCKER_REPO}:${TIMESTAMP}  
-        env:  
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}  
-          DOCKER_REPO: ${{ env.DOCKER_REPO }}  
-  
-      # 可选：推送带有latest标签的镜像（同样使用了 TIMESTAMP 变量）  
-      - name: Push Docker Image with latest tag (optional)  
-        run: |  
-          TIMESTAMP=$(date +'%Y%m%d%H%M%S')  
-          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:latest && docker push ${DOCKER_REPO}:latest  
-        env:  
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}  
-          DOCKER_REPO: ${{ env.DOCKER_REPO }}  
-  
-      # 通知（可选，例如使用Slack等通知工具）  
-      - name: Notify Server with Latest Docker Image Name  
-        run: |  
-          TIMESTAMP=$(date +'%Y%m%d%H%M%S')  
-          image_name="${IMAGE_NAME}:${TIMESTAMP}"  
-          json_payload='{  
-            "image_name": "'$image_name'"  
-          }'  
-          curl -X POST -H "Content-Type: application/json" --data "$json_payload" ${{ secrets.WEBHOOK_URL }}  
-        env:  
+
+      # 推送Docker镜像到Docker Registry
+      - name: Push Docker Image to Docker Registry
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:${TIMESTAMP}
+          # 使用已设置的配置文件进行推送
+          docker push ${DOCKER_REPO}:${TIMESTAMP}
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DOCKER_REPO: ${{ env.DOCKER_REPO }}
+
+      # 可选：推送带有latest标签的镜像
+      - name: Push Docker Image with latest tag (optional)
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REPO}:latest
+          docker push ${DOCKER_REPO}:latest
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DOCKER_REPO: ${{ env.DOCKER_REPO }}
+
+      # 通知（可选，例如使用Slack等通知工具）
+      - name: Notify Server with Latest Docker Image Name
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          image_name="${IMAGE_NAME}:${TIMESTAMP}"
+          json_payload='{
+            "image_name": "'"$image_name'""
+          }'
+          curl -X POST -H "Content-Type: application/json" --data "$json_payload" ${{ secrets.WEBHOOK_URL }}
+        env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
