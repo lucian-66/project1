@@ -59,7 +59,7 @@ jobs:
           else
             echo "Dockerfile found, using existing one."
           fi
-      # 构建Docker镜像
+ # 构建Docker镜像
       - name: Build Docker Image
         id: build-image
         run: |
@@ -84,8 +84,7 @@ jobs:
       - name: Tag Docker Image
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
-          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          REGISTRY_PATH=139.159.155.126:5000
           docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
@@ -96,8 +95,7 @@ jobs:
       - name: Push Docker Image to Docker Registry
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
-          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          REGISTRY_PATH=139.159.155.126:5000
           docker push ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
@@ -108,8 +106,7 @@ jobs:
       - name: Push Docker Image with latest tag (optional)
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
-          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          REGISTRY_PATH=139.159.155.126:5000
           docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:latest
           docker push ${REGISTRY_PATH}/${DOCKER_REPO}:latest
         env:
@@ -121,8 +118,7 @@ jobs:
       - name: Notify Server with Latest Docker Image Name
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
-          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          REGISTRY_PATH=139.159.155.126:5000
           image_name="${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}"
           json_payload='{
             "image_name": "'"$image_name'""
