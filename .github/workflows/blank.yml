@@ -65,7 +65,13 @@ jobs:
           docker build -t ${IMAGE_NAME}:${TIMESTAMP} .  
         env:  
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-
+          
+      # 设置环境变量以强制使用HTTP协议
+      - name: Set environment variable for HTTP protocol
+        run: |
+          echo ${{ secrets.DOCKER_REGISTRY_URL }}
+          echo "DOCKER_HTTP=true" >> $GITHUB_ENV
+          
       # 登录到私有 Docker 仓库  
       - name: Login to private Docker registry  
         run: |
