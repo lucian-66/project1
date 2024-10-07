@@ -1,47 +1,48 @@
-name: CI Pipeline  
-  
-on:  
-  push:  
-    branches:  
-      - main  
+name: CI Pipeline
 
-  
-jobs:  
-  build-and-deploy:  
-    runs-on: ubuntu-latest  
-    env:   
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
       DOCKER_REGISTRY_IP: 139.159.155.126
       DOCKER_REGISTRY_PORT: 5000
       DOCKER_REGISTRY_URL: "${{ env.DOCKER_REGISTRY_IP }}:${{ env.DOCKER_REGISTRY_PORT }}"
       DOCKER_REPO: "testcicd"
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    steps:  
-      - name: Checkout Repository  
-        uses: actions/checkout@v3  
-  
-      # 安装Node.js和npm  
-      - name: Set up Node.js  
-        uses: actions/setup-node@v3  
-        with:  
-          node-version: '22'  
-  
-      # 缓存node_modules以加速构建  
-      - name: Cache node_modules  
-        uses: actions/cache@v3  
-        with:  
-          path: '**/node_modules'  
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}  
-          restore-keys: |  
-            ${{ runner.os }}-node-  
-  
-      # 安装项目依赖  
-      - name: Install Dependencies  
-        run: npm install  
 
-      # 运行测试（假设有test脚本）  
-      #- name: Run Tests  
-      #  run: npm test  
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # 安装Node.js和npm
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      # 缓存node_modules以加速构建
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # 安装项目依赖
+      - name: Install Dependencies
+        run: npm install
+
+      # 运行测试（假设有test脚本）
+      #- name: Run Tests
+      #  run: npm test
+
       # 确认目录下有dockerfile文件
       - name: Check for Dockerfile and create if missing
         run: |
@@ -60,7 +61,7 @@ jobs:
           else
             echo "Dockerfile found, using existing one."
           fi
-# 构建Docker镜像
+      # 构建Docker镜像
       - name: Build Docker Image
         id: build-image
         run: |
