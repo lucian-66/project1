@@ -44,7 +44,7 @@ jobs:
       - name: Check for Dockerfile and create if missing
         run: |
           # 将时间戳作为环境变量设置
-          export TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
           # 检查 Dockerfile 是否存在
           if [ ! -f "Dockerfile" ]; then
             echo "Dockerfile not found, creating a default one for a Node.js project..."
