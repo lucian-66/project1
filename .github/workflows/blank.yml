@@ -10,11 +10,12 @@ jobs:
   build-and-deploy:  
     runs-on: ubuntu-latest  
     env:   
-      IMAGE_NAME: "testcicd"
+      DOCKER_REGISTRY_IP: 139.159.155.126
+      DOCKER_REGISTRY_PORT: 5000
+      DOCKER_REGISTRY_URL: "${{ env.DOCKER_REGISTRY_IP }}:${{ env.DOCKER_REGISTRY_PORT }}"
       DOCKER_REPO: "testcicd"
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_REGISTRY_URL: "http://139.159.155.126:5000"
     steps:  
       - name: Checkout Repository  
         uses: actions/checkout@v3  
@@ -74,7 +75,7 @@ jobs:
         run: |
           # 创建或编辑 /etc/docker/daemon.json 文件
           echo '{
-            "insecure-registries": ["139.159.155.126:5000"]
+            "insecure-registries": ["http://${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}"]
           }' | sudo tee /etc/docker/daemon.json
           
           # 重启Docker服务使更改生效
@@ -86,7 +87,7 @@ jobs:
           # 创建临时目录用于存放认证信息
           mkdir -p ~/.docker
           # 使用环境变量中的用户名和密码创建一个Docker配置文件
-          echo "{\"auths\":{\"${{ env.DOCKER_REGISTRY_URL }}\":{\"username\":\"${{ secrets.DOCKER_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_PASSWORD }}\"}}}" > ~/.docker/config.json
+          echo "{\"auths\":{\"${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}\":{\"username\":\"${{ secrets.DOCKER_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_PASSWORD }}\"}}}" > ~/.docker/config.json
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -94,10 +95,11 @@ jobs:
       # 提取主机名和端口
       - name: Extract Hostname and Port
         run: |
-          REGISTRY_PATH=$(echo "${{ env.DOCKER_REGISTRY_URL }}" | sed 's/http:\/\///' | sed 's/\///')
+          REGISTRY_PATH="${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}"
           echo "REGISTRY_PATH=$REGISTRY_PATH" >> $GITHUB_ENV
         env:
-          DOCKER_REGISTRY_URL: ${{ env.DOCKER_REGISTRY_URL }}
+          DOCKER_REGISTRY_IP: ${{ env.DOCKER_REGISTRY_IP }}
+          DOCKER_REGISTRY_PORT: ${{ env.DOCKER_REGISTRY_PORT }}
 
       # 检查提取的REGISTRY_PATH是否正确
       - name: Check Extracted REGISTRY_PATH
@@ -118,8 +120,8 @@ jobs:
       - name: Push Docker Image to Docker Registry
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          # 显式地使用HTTP URL
-          docker push http://${REGISTRY_PATH}/testcicd:${TIMESTAMP}
+          # 不再显式地指定HTTP URL
+          docker push ${REGISTRY_PATH}/testcicd:${TIMESTAMP}
         env:
           REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
 
@@ -127,8 +129,8 @@ jobs:
       - name: Push Docker Image with latest tag (optional)
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          docker tag testcicd:${TIMESTAMP} http://${REGISTRY_PATH}/testcicd:latest
-          docker push http://${REGISTRY_PATH}/testcicd:latest
+          docker tag testcicd:${TIMESTAMP} ${REGISTRY_PATH}/testcicd:latest
+          docker push ${REGISTRY_PATH}/testcicd:latest
         env:
           REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
 
@@ -136,7 +138,7 @@ jobs:
       - name: Notify Server with Latest Docker Image Name
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          image_name="http://${REGISTRY_PATH}/testcicd:${TIMESTAMP}"
+          image_name="${REGISTRY_PATH}/testcicd:${TIMESTAMP}"
           json_payload='{
             "image_name": "'"$image_name'""
           }'
