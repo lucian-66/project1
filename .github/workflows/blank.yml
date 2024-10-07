@@ -84,7 +84,9 @@ jobs:
       - name: Tag Docker Image
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REGISTRY_URL}/${DOCKER_REPO}:${TIMESTAMP}
+          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
+          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
@@ -94,7 +96,9 @@ jobs:
       - name: Push Docker Image to Docker Registry
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          docker push ${DOCKER_REGISTRY_URL}/${DOCKER_REPO}:${TIMESTAMP}
+          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
+          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          docker push ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
@@ -104,8 +108,10 @@ jobs:
       - name: Push Docker Image with latest tag (optional)
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${DOCKER_REGISTRY_URL}/${DOCKER_REPO}:latest
-          docker push ${DOCKER_REGISTRY_URL}/${DOCKER_REPO}:latest
+          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
+          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:latest
+          docker push ${REGISTRY_PATH}/${DOCKER_REPO}:latest
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
@@ -115,7 +121,9 @@ jobs:
       - name: Notify Server with Latest Docker Image Name
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          image_name="${DOCKER_REGISTRY_URL}/${DOCKER_REPO}:${TIMESTAMP}"
+          REGISTRY_HOST=${{ env.DOCKER_REGISTRY_URL }}
+          REGISTRY_PATH=$(echo "${REGISTRY_HOST}" | cut -d'/' -f3 | cut -d':' -f1)
+          image_name="${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}"
           json_payload='{
             "image_name": "'"$image_name'""
           }'
