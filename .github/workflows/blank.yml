@@ -48,15 +48,13 @@ jobs:
           # 检查 Dockerfile 是否存在
           if [ ! -f "Dockerfile" ]; then
             echo "Dockerfile not found, creating a default one for a Node.js project..."
-            cat <<EOF > Dockerfile
-            FROM node:22
-            WORKDIR /usr/src/app
-            COPY package*.json ./
-            RUN npm install
-            COPY . .
-            EXPOSE 8080   
-            CMD ["npm", "test"]
-            EOF
+            echo "FROM node:22" > Dockerfile
+            echo "WORKDIR /usr/src/app" >> Dockerfile
+            echo "COPY package*.json ./" >> Dockerfile
+            echo "RUN npm install" >> Dockerfile
+            echo "COPY . ." >> Dockerfile
+            echo "EXPOSE 8080" >> Dockerfile
+            echo 'CMD ["npm", "test"]' >> Dockerfile
           else
             echo "Dockerfile found, using existing one."
           fi
