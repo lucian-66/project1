@@ -75,26 +75,54 @@ jobs:
           # 创建临时目录用于存放认证信息
           mkdir -p ~/.docker
           # 使用环境变量中的用户名和密码创建一个Docker配置文件
-          echo "{\"auths\":{\"http://${{ env.DOCKER_REGISTRY_URL }}\":{\"username\":\"${{ secrets.DOCKER_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_PASSWORD }}\"}}}" > ~/.docker/config.json
+          echo "{\"auths\":{\"${{ env.DOCKER_REGISTRY_URL }}\":{\"username\":\"${{ secrets.DOCKER_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_PASSWORD }}\"}}}" > ~/.docker/config.json
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 提取主机名和端口
+      - name: Extract Hostname and Port
+        run: |
+          REGISTRY_PATH=$(echo "${{ env.DOCKER_REGISTRY_URL }}" | awk -F'[/:]' '{print $3":"$4}')
+          echo "REGISTRY_PATH=$REGISTRY_PATH" >> $GITHUB_ENV
+        env:
+          DOCKER_REGISTRY_URL: ${{ env.DOCKER_REGISTRY_URL }}
+
+      # 标记Docker镜像
+      - name: Tag Docker Image
+        run: |
+          TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DOCKER_REPO: ${{ env.DOCKER_REPO }}
+          REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
 
       # 推送Docker镜像到Docker Registry
       - name: Push Docker Image to Docker Registry
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_PATH=http://139.159.155.126:5000
           docker push ${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
+          REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
+
+      # 可选：推送带有latest标签的镜像
+      - name: Push Docker Image with latest tag (optional)
+        run: |
+          TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
+          docker tag ${IMAGE_NAME}:${TIMESTAMP} ${REGISTRY_PATH}/${DOCKER_REPO}:latest
+          docker push ${REGISTRY_PATH}/${DOCKER_REPO}:latest
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DOCKER_REPO: ${{ env.DOCKER_REPO }}
+          REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
 
       # 通知（可选，例如使用Slack等通知工具）
       - name: Notify Server with Latest Docker Image Name
         run: |
           TIMESTAMP=${{ steps.build-image.outputs.timestamp }}
-          REGISTRY_PATH=http://139.159.155.126:5000
           image_name="${REGISTRY_PATH}/${DOCKER_REPO}:${TIMESTAMP}"
           json_payload='{
             "image_name": "'"$image_name'""
@@ -102,3 +130,4 @@ jobs:
           curl -X POST -H "Content-Type: application/json" --data "$json_payload" ${{ secrets.WEBHOOK_URL }}
         env:
           DOCKER_REPO: ${{ env.DOCKER_REPO }}
+          REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
