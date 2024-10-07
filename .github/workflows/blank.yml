@@ -59,7 +59,7 @@ jobs:
           else
             echo "Dockerfile found, using existing one."
           fi
- # 构建Docker镜像
+# 构建Docker镜像
       - name: Build Docker Image
         id: build-image
         run: |
@@ -87,6 +87,13 @@ jobs:
           echo "REGISTRY_PATH=$REGISTRY_PATH" >> $GITHUB_ENV
         env:
           DOCKER_REGISTRY_URL: ${{ env.DOCKER_REGISTRY_URL }}
+
+      # 检查提取的REGISTRY_PATH是否正确
+      - name: Check Extracted REGISTRY_PATH
+        run: |
+          echo "Extracted REGISTRY_PATH: $REGISTRY_PATH"
+        env:
+          REGISTRY_PATH: ${{ env.REGISTRY_PATH }}
 
       # 标记Docker镜像
       - name: Tag Docker Image
