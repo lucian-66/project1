@@ -43,33 +43,34 @@ jobs:
       # 确认目录下有dockerfile文件
       - name: Check for Dockerfile and create if missing  
         run: |  
+          # 检查 Dockerfile 是否存在  
           if [ ! -f "Dockerfile" ]; then  
             echo "Dockerfile not found, creating a default one for a Node.js project..."  
             cat <<EOF > Dockerfile  
-            # Use an official Node.js runtime as a parent image  
-            FROM node:14  
-   
-            # Set the working directory in the container  
-            WORKDIR /usr/src/app  
-  
-            # Copy package.json and package-lock.json (if available)  
-            COPY package*.json ./  
-  
-            # Install any needed packages specified in package.json  
-            RUN npm install  
-  
-            # Copy the rest of the application code  
-            COPY . .  
-  
-            # Expose the port the app runs on  
-            EXPOSE 8080  
-  
-            # Define the command to run the app using npm  
-            CMD [ "npm", "test" ]  
-            EOF  
+          # Use an official Node.js runtime as a parent image  
+          FROM node:22  
+            
+          # Set the working directory in the container  
+          WORKDIR /usr/src/app  
+            
+          # Copy package.json and package-lock.json (if available)  
+          COPY package*.json ./  
+            
+          # Install any needed packages specified in package.json  
+          RUN npm install  
+            
+          # Copy the rest of the application code  
+          COPY . .  
+            
+          # Expose the port the app runs on  
+          EXPOSE 8080  
+            
+          # Define the command to run the app using npm    
+          CMD ["npm", "test"]  
+          EOF  
           else  
             echo "Dockerfile found, using existing one."  
-          fi  
+          fi
           
       # 构建Docker镜像  
       - name: Build Docker Image  
